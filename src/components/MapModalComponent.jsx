@@ -1,18 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import axiosInstance from '../service/axiosInstance' // adjust path as needed
-
-// ─── Haversine distance (km) ───────────────────────────────────────────────
-function getDistance(lat1, lng1, lat2, lng2) {
-    const R = 6371
-    const dLat = (lat2 - lat1) * Math.PI / 180
-    const dLng = (lng2 - lng1) * Math.PI / 180
-    const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLng / 2) ** 2
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
 
 // ─── Leaflet loader ────────────────────────────────────────────────────────
 function loadLeaflet() {
@@ -66,40 +52,40 @@ export default function MapModalComponent({
     const [loading, setLoading] = useState(false)
     const [apiError, setApiError] = useState(null)
 
-    // ── 1. Fetch stores via axiosInstance ─────────────────────────────────
+    // ── 1. Fetch nearby stores from NearByShops API ──────────────────────
     useEffect(() => {
         if (!isOpen) return
         setLoading(true)
         setApiError(null)
 
         axiosInstance
-            .get('/stores')                          // baseURL already has http://localhost:5002
+            .post(`/Promotions/NearByShops`, {
+                latitude: userLat,
+                longitude: userLng,
+            })
             .then(res => {
-                // Response shape: { success, count, data: [...] }
-                const raw = res.data?.data ?? []
-                const mapped = raw.map(row => ({
-                    code: row.plant_code,
-                    name: row.location,
-                    lat: parseFloat(row.latitude),
-                    lng: parseFloat(row.longitude),
-                    status: row.status,
-                }))
+                const raw = Array.isArray(res.data) ? res.data : []
+                const mapped = raw
+                    // Filter out stores with invalid (0,0) coordinates
+                    .filter(row => row.latitude !== 0 && row.longitude !== 0)
+                    // Remove duplicates by branchId
+                    .filter((row, idx, arr) => arr.findIndex(r => r.branchId === row.branchId) === idx)
+                    .map(row => ({
+                        code: row.branchId,
+                        name: row.branchName,
+                        lat: row.latitude,
+                        lng: row.longitude,
+                        dist: row.distance,   // API already provides distance in km
+                    }))
                 setStores(mapped)
             })
             .catch(err => {
-                console.error('Store fetch failed:', err)
-                setApiError('Could not load stores. Showing cached data.')
-                // fallback — at least show Nagpur cluster
-                setStores([
-                    { code: 'L102', name: 'Ajni', lat: 21.10382, lng: 79.05302, status: 'Live' },
-                    { code: 'L126', name: 'Chatarpati', lat: 21.108334, lng: 79.082532, status: 'Live' },
-                    { code: 'L122', name: 'Sadar', lat: 21.146633, lng: 79.08886, status: 'Live' },
-                    { code: 'L105', name: 'Manish Nagar', lat: 21.090675, lng: 79.082206, status: 'Live' },
-                    { code: 'L106', name: 'Manewada', lat: 21.118375, lng: 79.104537, status: 'Live' },
-                ])
+                console.error('NearByShops fetch failed:', err)
+                setApiError('Could not load nearby stores. Please try again.')
+                setStores([])
             })
             .finally(() => setLoading(false))
-    }, [isOpen])
+    }, [isOpen, userLat, userLng])
 
     // ── 2. Load Leaflet ───────────────────────────────────────────────────
     useEffect(() => {
@@ -158,8 +144,8 @@ export default function MapModalComponent({
             .addTo(map)
             .bindPopup('<b style="font-family:Segoe UI,sans-serif">You are here</b>')
 
-        // Store markers (Live only)
-        stores.filter(st => st.status === 'Live').forEach(store => {
+        // Store markers (all valid stores)
+        stores.forEach(store => {
             const m = L.marker([store.lat, store.lng], { icon: makeRedPin() }).addTo(map)
             m.on('click', () => {
                 setActiveStore(store)
@@ -211,10 +197,9 @@ export default function MapModalComponent({
         setActiveStore(null)
     }
 
-    // ── 6. Nearest 5 ─────────────────────────────────────────────────────
+    // ── 6. Nearest 5 (already sorted by API distance) ────────────────────
     const nearest = stores
-        .filter(s => s.status === 'Live')
-        .map(s => ({ ...s, dist: getDistance(userLat, userLng, s.lat, s.lng) }))
+        .slice()
         .sort((a, b) => a.dist - b.dist)
         .slice(0, 5)
 
@@ -242,15 +227,15 @@ export default function MapModalComponent({
             show: false, // hides instruction panel
         }).addTo(mapInstanceRef.current)
 
-        
+
     }
 
     const clearRoute = () => {
-            if (routeRef.current && mapInstanceRef.current) {
-                mapInstanceRef.current.removeControl(routeRef.current)
-                routeRef.current = null
-            }
+        if (routeRef.current && mapInstanceRef.current) {
+            mapInstanceRef.current.removeControl(routeRef.current)
+            routeRef.current = null
         }
+    }
 
     const openGoogleMaps = (store) => {
         const url = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${store.lat},${store.lng}&travelmode=driving`

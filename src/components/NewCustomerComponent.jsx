@@ -1,14 +1,30 @@
 import { Gift } from "lucide-react";
 import { useEffect, useState } from "react";
-import axiosInstance from "../service/axiosInstance";
+import axiosInstance from "../service/axiosInstance"; // local API — disabled for now
+
+// External API base (encrypt + promotions)
+const ENCRYPT_KEY_ID = "12334311";
+
+/** Encrypts a single value via the webhook-keys/encrypt endpoint */
+async function encryptValue(value) {
+    const res = await axiosInstance.post(`/webhook-keys/encrypt`, {
+        keyId: ENCRYPT_KEY_ID,
+        webhookKey: String(value),
+    });
+    // The API returns the encrypted string – adjust the field name if needed
+    return res.data?.encryptedKey ?? res.data?.data ?? res.data;
+}
 
 
-export default function NewCustomerComponent({ onSubmit, location }) {
+export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }) {
     const [mobile, setMobile] = useState("");
     const [name, setName] = useState("");
     const [triedChicken, setTriedChicken] = useState("");
     const [isVerified, setIsVerified] = useState(false);
     const [checking, setChecking] = useState(false);
+    const [email, setEmail] = useState("customer@absc.com");
+    const [submitting, setSubmitting] = useState(false);
+
 
     const checkCustomer = async (mobileNumber) => {
         try {
@@ -23,7 +39,7 @@ export default function NewCustomerComponent({ onSubmit, location }) {
 
                 // autofill
                 setName(data.name || "");
-                setTriedChicken(data.triedChicken || "yes");
+                setTriedChicken(data.triedChicken || "Y");
             }
         } catch (error) {
             // if not found → reset
@@ -46,36 +62,67 @@ export default function NewCustomerComponent({ onSubmit, location }) {
     }, [mobile]);
 
     const handleSubmit = async () => {
-        if (isVerified) {
-            onSubmit({ mobile, name, triedChicken });
-            return;
-        }
-
         if (!mobile || !name) {
             alert("Please fill in all required fields.");
             return;
         }
 
         try {
-            const res = await axiosInstance.post("/create-customer", {
-                name: name,
-                mobilenumber: mobile,
-                triedChicken: triedChicken,
-                customerLatitude: location?.latitude,
-                customerLongitude: location?.longitude,
+            setSubmitting(true);
+
+            // ── Step 1: Create / verify customer in the existing system ──
+            // if (!isVerified) {
+            //     await axiosInstance.post("/create-customer", {
+            //         name: name,
+            //         mobilenumber: mobile,
+            //         triedChicken: triedChicken,
+            //         customerLatitude: location?.latitude,
+            //         customerLongitude: location?.longitude,
+            //     });
+            // }
+
+            // ── Step 2: Encrypt sensitive fields ──
+            const [encMobile, encName, encEmail, encQ1] = await Promise.all([
+                encryptValue(mobile),
+                encryptValue(name),
+                encryptValue(email),
+                encryptValue(triedChicken)
+            ]);
+
+            // ── Step 3: Submit to Promotions API ──
+            const promoRes = await axiosInstance.post(`/Promotions/UpsertPromotion`, {
+                id: "",
+                promotionDetailId: qrGuid,
+                mobile: encMobile,
+                customerName: encName,
+                email: encEmail,
+                Q1Ans: encQ1,
+                createdDate: new Date().toISOString(),
             });
 
-            console.log("Customer created:", res.data);
+            let rawData = promoRes.data;
+            if (typeof rawData === "string") {
+                try {
+                    rawData = JSON.parse(`[${rawData}]`);
+                } catch (e) {
+                    console.error("Failed to parse promo response:", e);
+                }
+            }
+            const responseData = Array.isArray(rawData)
+                ? rawData[rawData.length - 1]
+                : rawData;
+            const promoCode = responseData?.PromoCode ?? responseData?.promoCode ?? "";
+            console.log("Extracted promoCode:", promoCode);
 
-            // move to next screen
-            onSubmit({ mobile, name, triedChicken });
+            // ── Step 4: Move to next screen ──
+            onSubmit({ mobile, name, triedChicken, promoCode });
         } catch (error) {
             console.error(error);
-
             const message =
-                error?.response?.data?.message || "Failed to submit customer";
-
+                error?.response?.data?.message || "Failed to submit. Please try again.";
             alert(message);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -153,6 +200,7 @@ export default function NewCustomerComponent({ onSubmit, location }) {
                         onChange={(e) => setName(e.target.value)}
                     />
 
+
                     {/* Yes / No */}
                     <p style={styles.question}>
                         Have you tried Abis Pro Chicken?{" "}
@@ -161,26 +209,26 @@ export default function NewCustomerComponent({ onSubmit, location }) {
                     <div style={styles.toggleGroup}>
                         <button
                             style={
-                                triedChicken === "yes"
+                                triedChicken === "Y"
                                     ? { ...styles.toggleBtn, ...styles.toggleActive }
                                     : styles.toggleBtn
                             }
-                            onClick={() => setTriedChicken("yes")}
+                            onClick={() => setTriedChicken("Y")}
                         >
-                            {triedChicken === "yes" && (
+                            {triedChicken === "Y" && (
                                 <span style={styles.checkCircle}>✔</span>
                             )}
                             Yes
                         </button>
                         <button
                             style={
-                                triedChicken === "no"
+                                triedChicken === "N"
                                     ? { ...styles.toggleBtn, ...styles.toggleActive }
                                     : styles.toggleBtn
                             }
-                            onClick={() => setTriedChicken("no")}
+                            onClick={() => setTriedChicken("N")}
                         >
-                            {triedChicken === "no" && (
+                            {triedChicken === "N" && (
                                 <span style={styles.checkCircle}>✔</span>
                             )}
                             No
@@ -189,9 +237,17 @@ export default function NewCustomerComponent({ onSubmit, location }) {
                 </div>
 
                 {/* Submit */}
-                <button style={styles.submitBtn} onClick={handleSubmit}>
-                    Submit Response &nbsp;
-                    <span style={styles.submitArrow}>➤</span>
+                <button
+                    style={{
+                        ...styles.submitBtn,
+                        opacity: submitting ? 0.7 : 1,
+                        cursor: submitting ? "not-allowed" : "pointer",
+                    }}
+                    onClick={handleSubmit}
+                    disabled={submitting}
+                >
+                    {submitting ? "Submitting..." : "Submit Response"}&nbsp;
+                    {!submitting && <span style={styles.submitArrow}>➤</span>}
                 </button>
             </div>
         </div>

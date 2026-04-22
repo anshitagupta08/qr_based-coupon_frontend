@@ -5,8 +5,10 @@ export default function CouponPageComponent({ formData, location }) {
     const [copied, setCopied] = useState(false)
     const [showMap, setShowMap] = useState(false)
 
+    const promoCode = formData?.promoCode || '';
+
     const handleCopy = () => {
-        navigator.clipboard?.writeText('ABIS-PRO-2024').catch(() => { })
+        navigator.clipboard?.writeText(promoCode).catch(() => { })
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
     }
@@ -70,8 +72,8 @@ export default function CouponPageComponent({ formData, location }) {
                 {/* Code */}
                 <p style={s.redeemLabel}>REDEEM CODE</p>
                 <div style={s.codeRow}>
-                    <span style={s.codeText}>ABIS-PRO-2024</span>
-                    <button style={s.copyBtn} onClick={handleCopy}>
+                    <span style={s.codeText}>{promoCode || '—'}</span>
+                    <button style={s.copyBtn} onClick={handleCopy} disabled={!promoCode}>
                         {copied ? <span style={s.copiedTick}>✔</span> : <CopyIcon />}
                     </button>
                 </div>
@@ -94,10 +96,10 @@ export default function CouponPageComponent({ formData, location }) {
             </div>
 
             <MapModalComponent
-              isOpen={showMap}
-              userLat={location?.latitude}
-              userLng={location?.longitude}
-              onClose={() => setShowMap(false)}
+                isOpen={showMap}
+                userLat={location?.latitude}
+                userLng={location?.longitude}
+                onClose={() => setShowMap(false)}
             />
 
         </div>

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_URL, 
+  baseURL: "https://retailuat.abisaio.com:9001/api",
   headers: {
     "Content-Type": "application/json",
   },
