@@ -7,11 +7,12 @@ import CouponPageComponent from './components/CoupounPageComponent'
 // Parse QR GUID from URL format: ?UID:<guid>
 // e.g. https://yourapp.com?UID:3fa85f64-5717-4562-b3fc-2c963f66afa6
 function parseQrGuid() {
-  const search = window.location.search; // "?UID:3fa85f64-..."
-  const raw = search.startsWith('?') ? search.slice(1) : search; // "UID:3fa85f64-..."
-  if (raw.startsWith('UID:')) {
-    return raw.slice(4); // "3fa85f64-..."
+  const path = window.location.pathname; // "/UID:3fa85f64-..."
+
+  if (path.startsWith('/UID:')) {
+    return path.replace('/UID:', '');
   }
+
   return '';
 }
 
