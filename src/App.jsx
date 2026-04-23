@@ -7,7 +7,17 @@ import CouponPageComponent from './components/CoupounPageComponent'
 // Parse QR GUID from URL format: ?UID:<guid>
 // e.g. https://yourapp.com?UID:3fa85f64-5717-4562-b3fc-2c963f66afa6
 function parseQrGuid() {
-  const path = window.location.pathname; // "/UID:3fa85f64-..."
+  const search = window.location.search; 
+
+  if (search.startsWith('?UID:')) {
+    return search.replace('?UID:', '');
+  }
+  
+  if (search.startsWith('?UID=')) {
+    return search.replace('?UID=', '');
+  }
+
+  const path = window.location.pathname; 
 
   if (path.startsWith('/UID:')) {
     return path.replace('/UID:', '');
@@ -24,7 +34,7 @@ const STEP = {
   COUPON: 'coupon',
 }
 
-const ABIS_BASE = 'https://retailuat.abisaio.com:9001/api';
+const ABIS_BASE = '/api';
 
 function App() {
   const [step, setStep] = useState(STEP.LOCATION)
