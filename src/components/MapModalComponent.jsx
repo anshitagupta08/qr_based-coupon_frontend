@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react';
+import axiosInstance from "../service/axiosInstance";
 
 // ─── Leaflet loader ────────────────────────────────────────────────────────
 function loadLeaflet() {
