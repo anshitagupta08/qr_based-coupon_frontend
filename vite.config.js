@@ -8,4 +8,13 @@ export default defineConfig({
     react(),
     babel({ presets: [reactCompilerPreset()] })
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://retailuat.abisaio.com:9001',//dev
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  }
 })
