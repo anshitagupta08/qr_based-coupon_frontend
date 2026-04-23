@@ -96,7 +96,7 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
                 mobile: encMobile,
                 customerName: encName,
                 email: encEmail,
-                Q1Ans: encQ1,
+                q1Ans: encQ1,
                 createdDate: new Date().toISOString(),
             });
 
