@@ -417,6 +417,7 @@ const styles = {
         height: 52,
         fontSize: 15,
         color: "#222",
+        backgroundColor: "#fff",
         outline: "none",
         marginBottom: 24,
         display: "block",

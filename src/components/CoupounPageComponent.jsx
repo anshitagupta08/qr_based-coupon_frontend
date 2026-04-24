@@ -80,9 +80,9 @@ export default function CouponPageComponent({ formData, location }) {
 
                 {copied && <p style={s.copiedMsg}>Copied to clipboard!</p>}
 
-                <p style={s.validity}>
+                {/* <p style={s.validity}>
                     Valid until <strong>31 Dec 2024</strong>
-                </p>
+                </p> */}
             </div>
 
             {/* ── Find Stores Button ── */}
