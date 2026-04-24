@@ -9,6 +9,7 @@ export default defineConfig({
     babel({ presets: [reactCompilerPreset()] })
   ],
   server: {
+    allowedHosts: ["promotions.abispro.com", "localhost", "127.0.0.1"],
     proxy: {
       '/api': {
         target: 'https://retailuat.abisaio.com:9001',//dev
