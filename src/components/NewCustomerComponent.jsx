@@ -112,10 +112,12 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
                 ? rawData[rawData.length - 1]
                 : rawData;
             const promoCode = responseData?.PromoCode ?? responseData?.promoCode ?? "";
+            const discountName = responseData?.DiscountName ?? responseData?.DiscountName ?? "";
+            const validToDate = responseData?.ValidToDate ?? responseData?.ValidToDate ?? "";
             console.log("Extracted promoCode:", promoCode);
 
             // ── Step 4: Move to next screen ──
-            onSubmit({ mobile, name, triedChicken, promoCode });
+            onSubmit({ mobile, name, triedChicken, promoCode, discountName, validToDate });
         } catch (error) {
             console.error(error);
             const message =

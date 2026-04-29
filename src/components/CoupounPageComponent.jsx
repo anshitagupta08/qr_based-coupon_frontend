@@ -6,6 +6,9 @@ export default function CouponPageComponent({ formData, location }) {
     const [showMap, setShowMap] = useState(false)
 
     const promoCode = formData?.promoCode || '';
+    const discountName = formData?.discountName || '';
+    const validToDate = formData?.validToDate || '';
+
 
     const handleCopy = () => {
         navigator.clipboard?.writeText(promoCode).catch(() => { })
@@ -16,6 +19,14 @@ export default function CouponPageComponent({ formData, location }) {
     const handleFindStores = () => {
         setShowMap(true)
     }
+
+    const validTo = validToDate
+        ? new Date(validToDate).toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+        })
+        : '—';
 
     return (
         <div style={s.page}>
@@ -60,7 +71,7 @@ export default function CouponPageComponent({ formData, location }) {
                     <div style={{ ...s.notch, right: -14 }} />
 
                     <p style={s.exclusiveLabel}>EXCLUSIVE VOUCHER</p>
-                    <p style={s.discountText}>GET 20%{"\n"}OFF</p>
+                    <p style={s.discountText}>{discountName || '—'}</p>
                     <p style={s.validDesc}>
                         Valid on all professional tier subscriptions
                     </p>
@@ -80,9 +91,9 @@ export default function CouponPageComponent({ formData, location }) {
 
                 {copied && <p style={s.copiedMsg}>Copied to clipboard!</p>}
 
-                {/* <p style={s.validity}>
-                    Valid until <strong>31 Dec 2024</strong>
-                </p> */}
+                <p style={s.validity}>
+                    Valid until <strong>{validTo}</strong>
+                </p>
             </div>
 
             {/* ── Find Stores Button ── */}
@@ -156,7 +167,7 @@ const s = {
     card: {
         width: 'calc(100% - 45px)',
         maxWidth: 420,
-        margin: '-135px auto 20px',
+        margin: '-170px auto 20px',
         position: 'relative',
         zIndex: 1,
         background: '#fff',
