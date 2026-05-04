@@ -12,7 +12,7 @@ export default defineConfig({
     allowedHosts: ["promotions.abispro.com", "localhost", "127.0.0.1"],
     proxy: {
       '/api': {
-        target: 'https://retailuat.abisaio.com:9001',//dev
+        target: 'https://ibretailapi.abisaio.com',//dev
         changeOrigin: true,
         secure: false,
       }
