@@ -18,8 +18,8 @@ async function encryptValue(value) {
 
 export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }) {
     const [mobile, setMobile] = useState("");
-    const [name, setName] = useState("");
-    const [triedChicken, setTriedChicken] = useState("");
+    const [name, setName] = useState("abc");
+    const [triedChicken, setTriedChicken] = useState("Y");
     const [isVerified, setIsVerified] = useState(false);
     const [checking, setChecking] = useState(false);
     const [email, setEmail] = useState("customer@absc.com");
