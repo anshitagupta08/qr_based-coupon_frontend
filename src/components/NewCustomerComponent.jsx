@@ -62,7 +62,7 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
     }, [mobile]);
 
     const handleSubmit = async () => {
-        if (!mobile || !name) {
+        if (!mobile) {
             alert("Please fill in all required fields.");
             return;
         }
@@ -191,7 +191,7 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
                     </div>
 
                     {/* Full Name */}
-                    <label style={styles.label}>
+                    {/* <label style={styles.label}>
                         FULL NAME <span style={styles.req}>*</span>
                     </label>
                     <input
@@ -200,11 +200,11 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
                         placeholder="Enter your full name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                    />
+                    /> */}
 
 
                     {/* Yes / No */}
-                    <p style={styles.question}>
+                    {/* <p style={styles.question}>
                         Have you tried Abis Pro Chicken?{" "}
                         <span style={styles.req}>*</span>
                     </p>
@@ -235,7 +235,7 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
                             )}
                             No
                         </button>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Submit */}
