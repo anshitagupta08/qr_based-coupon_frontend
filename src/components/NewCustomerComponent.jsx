@@ -26,7 +26,7 @@ async function sendPromoSms(mobile, promoCode, discountName) {
             },
             body: JSON.stringify({
                 mobile: `+91${mobile}`,
-                message: discountName,
+                message: "ABISPRO: FREE 6 Eggs on your chicken buy on a spend of ₹299. Use code ABISPRO at your nearest Abis Pro store — walk in or call 9109993507 to order.",
             }),
         });
     } catch (err) {
