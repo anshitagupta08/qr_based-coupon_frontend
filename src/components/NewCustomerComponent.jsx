@@ -11,8 +11,27 @@ async function encryptValue(value) {
         keyId: ENCRYPT_KEY_ID,
         webhookKey: String(value),
     });
-    // The API returns the encrypted string – adjust the field name if needed
     return res.data?.encryptedKey ?? res.data?.data ?? res.data;
+}
+
+/** Fires the SMS notification — silent fail so it never blocks the UI */
+async function sendPromoSms(mobile, promoCode, discountName) {
+    if (!promoCode) return;
+    try {
+        await fetch("https://api-abispro.abisexport.com/api/v1/sms/send", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": "e3756f9708d4062d6b75b6654a1194f433787ab5cc1bc22b8b101f0a5c4b59",
+            },
+            body: JSON.stringify({
+                mobile: `+91${mobile}`,
+                message: discountName,
+            }),
+        });
+    } catch (err) {
+        console.error("SMS send failed:", err);
+    }
 }
 
 
@@ -42,7 +61,6 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
                 setTriedChicken(data.triedChicken || "Y");
             }
         } catch (error) {
-            // if not found → reset
             setIsVerified(false);
         } finally {
             setChecking(false);
@@ -53,7 +71,7 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
         if (mobile.length === 10) {
             const timer = setTimeout(() => {
                 checkCustomer(mobile);
-            }, 500); // debounce
+            }, 500);
 
             return () => clearTimeout(timer);
         } else {
@@ -70,18 +88,7 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
         try {
             setSubmitting(true);
 
-            // ── Step 1: Create / verify customer in the existing system ──
-            // if (!isVerified) {
-            //     await axiosInstance.post("/create-customer", {
-            //         name: name,
-            //         mobilenumber: mobile,
-            //         triedChicken: triedChicken,
-            //         customerLatitude: location?.latitude,
-            //         customerLongitude: location?.longitude,
-            //     });
-            // }
-
-            // ── Step 2: Encrypt sensitive fields ──
+            // ── Step 1: Encrypt sensitive fields ──
             const [encMobile, encName, encEmail, encQ1] = await Promise.all([
                 encryptValue(mobile),
                 encryptValue(name),
@@ -89,7 +96,7 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
                 encryptValue(triedChicken)
             ]);
 
-            // ── Step 3: Submit to Promotions API ──
+            // ── Step 2: Submit to Promotions API ──
             const promoRes = await axiosInstance.post(`/Promotions/UpsertPromotion`, {
                 id: "",
                 promotionDetailId: qrGuid,
@@ -112,9 +119,12 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
                 ? rawData[rawData.length - 1]
                 : rawData;
             const promoCode = responseData?.PromoCode ?? responseData?.promoCode ?? "";
-            const discountName = responseData?.DiscountName ?? responseData?.DiscountName ?? "";
-            const validToDate = responseData?.ValidToDate ?? responseData?.ValidToDate ?? "";
+            const discountName = responseData?.DiscountName ?? responseData?.discountName ?? "";
+            const validToDate = responseData?.ValidToDate ?? responseData?.validToDate ?? "";
             console.log("Extracted promoCode:", promoCode);
+
+            // ── Step 3: Send SMS now that we have a confirmed promoCode ──
+            await sendPromoSms(mobile, promoCode, discountName);
 
             // ── Step 4: Move to next screen ──
             onSubmit({ mobile, name, triedChicken, promoCode, discountName, validToDate });
@@ -189,53 +199,6 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
                             />
                         </div>
                     </div>
-
-                    {/* Full Name */}
-                    {/* <label style={styles.label}>
-                        FULL NAME <span style={styles.req}>*</span>
-                    </label>
-                    <input
-                        style={styles.plainInput}
-                        type="text"
-                        placeholder="Enter your full name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                    /> */}
-
-
-                    {/* Yes / No */}
-                    {/* <p style={styles.question}>
-                        Have you tried Abis Pro Chicken?{" "}
-                        <span style={styles.req}>*</span>
-                    </p>
-                    <div style={styles.toggleGroup}>
-                        <button
-                            style={
-                                triedChicken === "Y"
-                                    ? { ...styles.toggleBtn, ...styles.toggleActive }
-                                    : styles.toggleBtn
-                            }
-                            onClick={() => setTriedChicken("Y")}
-                        >
-                            {triedChicken === "Y" && (
-                                <span style={styles.checkCircle}>✔</span>
-                            )}
-                            Yes
-                        </button>
-                        <button
-                            style={
-                                triedChicken === "N"
-                                    ? { ...styles.toggleBtn, ...styles.toggleActive }
-                                    : styles.toggleBtn
-                            }
-                            onClick={() => setTriedChicken("N")}
-                        >
-                            {triedChicken === "N" && (
-                                <span style={styles.checkCircle}>✔</span>
-                            )}
-                            No
-                        </button>
-                    </div> */}
                 </div>
 
                 {/* Submit */}
@@ -260,7 +223,6 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
 const styles = {
     body: {
         minHeight: "100vh",
-        // background: "#fbe8e8",
         background: "#fff",
         fontFamily: "'Segoe UI', Arial, sans-serif",
     },
@@ -274,7 +236,6 @@ const styles = {
         position: "relative",
     },
 
-    /* HERO (Full width banner) */
     hero: {
         height: 260,
         width: "100%",
@@ -286,10 +247,9 @@ const styles = {
         objectFit: "cover",
     },
 
-    /* CARD (overlapping hero) */
     card: {
         maxWidth: 420,
-        margin: "-100px 15px 40px", // 🔥 THIS creates overlap
+        margin: "-100px 15px 40px",
         background: "#fff",
         borderRadius: 20,
         padding: 20,
@@ -300,7 +260,6 @@ const styles = {
 
     detailcard: {
         maxWidth: 420,
-        // margin: "-100px 15px 40px", // 🔥 THIS creates overlap
         background: "#fff",
         borderRadius: 20,
         padding: 20,
@@ -310,7 +269,6 @@ const styles = {
         textAlign: "justify"
     },
 
-    /* Badge */
     badge: {
         display: "inline-flex",
         alignItems: "center",
@@ -339,7 +297,6 @@ const styles = {
         marginBottom: 26,
     },
 
-    /* Labels */
     label: {
         display: "block",
         fontSize: 11,
@@ -352,7 +309,6 @@ const styles = {
     },
     req: { color: "#e03030" },
 
-    /* Phone input row */
     inputRow: {
         display: "flex",
         alignItems: "center",
@@ -388,7 +344,6 @@ const styles = {
         background: "transparent",
     },
 
-    /// Status badge (for verification)
     statusBadge: {
         position: "absolute",
         top: -18,
@@ -410,7 +365,6 @@ const styles = {
         borderRadius: 12,
     },
 
-    /* Plain input */
     plainInput: {
         border: "1.5px solid #f0d0d0",
         borderRadius: 12,
@@ -426,7 +380,6 @@ const styles = {
         boxSizing: "border-box",
     },
 
-    /* Question */
     question: {
         fontSize: 15,
         fontWeight: 600,
@@ -435,7 +388,6 @@ const styles = {
         textAlign: "justify"
     },
 
-    /* Toggle */
     toggleGroup: {
         display: "flex",
         gap: 14,
@@ -474,7 +426,6 @@ const styles = {
         fontSize: 11,
     },
 
-    /* Submit */
     submitBtn: {
         width: "100%",
         height: 56,
