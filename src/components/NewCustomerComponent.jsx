@@ -37,6 +37,7 @@ async function sendPromoSms(mobile, promoCode, discountName) {
 
 export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }) {
     const [mobile, setMobile] = useState("");
+    const [mobileError, setMobileError] = useState("");
     const [name, setName] = useState("abc");
     const [triedChicken, setTriedChicken] = useState("Y");
     const [isVerified, setIsVerified] = useState(false);
@@ -69,19 +70,25 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
 
     useEffect(() => {
         if (mobile.length === 10) {
+            setMobileError("");
             const timer = setTimeout(() => {
                 checkCustomer(mobile);
             }, 500);
-
             return () => clearTimeout(timer);
         } else {
             setIsVerified(false);
         }
     }, [mobile]);
 
+    const handleMobileChange = (e) => {
+        const val = e.target.value.replace(/\D/g, "");
+        setMobile(val);
+        if (mobileError && val.length === 10) setMobileError("");
+    };
+
     const handleSubmit = async () => {
-        if (!mobile) {
-            alert("Please fill in all required fields.");
+        if (mobile.length !== 10) {
+            setMobileError("Please enter a valid 10-digit mobile number.");
             return;
         }
 
@@ -171,7 +178,7 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
                     <label style={styles.label}>
                         MOBILE NUMBER <span style={styles.req}>*</span>
                     </label>
-                    <div style={{ position: "relative", marginBottom: 22 }}>
+                    <div style={{ position: "relative", marginBottom: mobileError ? 8 : 22 }}>
                         {checking && (
                             <div style={styles.statusBadge}>
                                 Checking...
@@ -184,7 +191,11 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
                             </div>
                         )}
 
-                        <div style={styles.inputRow}>
+                        <div style={{
+                            ...styles.inputRow,
+                            borderColor: mobileError ? "#e03030" : "#f0d0d0",
+                            marginBottom: 0,
+                        }}>
                             <div style={styles.countryCode}>+91</div>
 
                             <input
@@ -193,12 +204,14 @@ export default function NewCustomerComponent({ onSubmit, location, qrGuid = "" }
                                 placeholder="Enter mobile number"
                                 maxLength={10}
                                 value={mobile}
-                                onChange={(e) =>
-                                    setMobile(e.target.value.replace(/\D/g, ""))
-                                }
+                                onChange={handleMobileChange}
                             />
                         </div>
                     </div>
+
+                    {mobileError && (
+                        <p style={styles.errorMsg}>{mobileError}</p>
+                    )}
                 </div>
 
                 {/* Submit */}
@@ -342,6 +355,14 @@ const styles = {
         color: "#222",
         height: 52,
         background: "transparent",
+    },
+
+    errorMsg: {
+        color: "#e03030",
+        fontSize: 12,
+        fontWeight: 500,
+        marginBottom: 16,
+        marginTop: 4,
     },
 
     statusBadge: {
